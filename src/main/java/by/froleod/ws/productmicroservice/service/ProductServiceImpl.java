@@ -1,7 +1,8 @@
 package by.froleod.ws.productmicroservice.service;
 
+import by.froleod.ws.core.ProductCreatedEvent;
 import by.froleod.ws.productmicroservice.service.dto.CreateProductDto;
-import by.froleod.ws.productmicroservice.service.event.ProductCreatedEvent;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -34,9 +35,14 @@ public class ProductServiceImpl implements ProductService {
                 product.getPrice(),
                 product.getQuantity());
 
+        ProducerRecord<String, ProductCreatedEvent> record = new ProducerRecord<>(PRODUCT_CREATED_TOPIC,
+                productId,
+                productCreatedEvent
+        );
 
-        SendResult<String,ProductCreatedEvent> result =
-                kafkaTemplate.send(PRODUCT_CREATED_TOPIC, productId, productCreatedEvent).get();
+        record.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+        SendResult<String,ProductCreatedEvent> result = kafkaTemplate.send(record).get();
 
         LOGGER.info("topic: {}", result.getRecordMetadata().topic());
         LOGGER.info("partition: {}", result.getRecordMetadata().partition());
